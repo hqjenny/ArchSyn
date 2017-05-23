@@ -1,6 +1,6 @@
 
 #include "llvm/ADT/Statistic.h"
-#include "llvm/IR/Module.h"
+#include "llvm/Module.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/GenSynthC/GenSynthC.h"
@@ -41,7 +41,7 @@ namespace {
     bool runOnModule(Module &M) override {
         (*out_c) << "// GenSynthC: ";
         setGeneratingCPU(generatingCPU);
-        (*out_c).write_escaped(M.getName()) << '\n';
+        (*out_c).write_escaped(M.getModuleIdentifier()) << '\n';
 
         if(getGeneratingCPU())
             (*out_c) << "#include \"comm.h\"\n ";
@@ -54,7 +54,10 @@ namespace {
 
             Function* curFunc = &(*funcIter);
             errs()<<"check out function "<<curFunc->getName()<<"\n";
-            if(!curFunc->hasFnAttribute(TRANSFORMEDATTR))
+            //if(!curFunc->hasFnAttribute(TRANSFORMEDATTR))
+            if(!curFunc->getFnAttributes().hasAttribute(Attributes::TRANSFORMEDATTR))
+ 
+
             {
                 NormalCFuncGenerator* ncf= new NormalCFuncGenerator(curFunc,*out_c);
                 normalFuncGenerators.push_back(ncf);

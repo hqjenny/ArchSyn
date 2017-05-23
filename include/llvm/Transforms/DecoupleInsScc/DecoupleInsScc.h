@@ -1,7 +1,7 @@
 #ifndef DECOUPLEINSSCC_H
 #define DECOUPLEINSSCC_H
 #include "llvm/ADT/Statistic.h"
-#include "llvm/IR/Function.h"
+#include "llvm//Function.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Utils/ArchSynUtils.h"

@@ -2,13 +2,13 @@
 #define GENCFUNC_H
 #include "llvm/ADT/SCCIterator.h"
 #include "llvm/ADT/Statistic.h"
-#include "llvm/IR/Function.h"
-#include "llvm/IR/Module.h"
+#include "llvm/Function.h"
+#include "llvm/Module.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
-#include "llvm/IR/IRBuilder.h"
+#include "llvm/IRBuilder.h"
 #include "llvm/Analysis/InstructionGraph.h"
-#include "llvm/IR/Dominators.h"
+#include "llvm/Analysis/Dominators.h"
 #include "llvm/Analysis/PostDominators.h"
 #include "llvm/Analysis/LoopInfo.h"
 #include "GenCFuncUtil.h"
@@ -61,19 +61,19 @@ namespace GenCFunc {
             int readSeq = 0;
             std::string allChannelInfoStr = "";
             std::string channelInfoType = "channel_info<"+ptedTypeName+">";
-            for(auto user_iter = insn->user_begin(); user_iter != insn->user_end(); user_iter++)
+            for(Function::use_iterator use_iter = insn->use_begin(); use_iter != insn->use_end(); use_iter++)
             {
-                std::string curChannelInfoName = generateFifoChannelInfoName(insn,*user_iter);
+                std::string curChannelInfoName = generateFifoChannelInfoName(insn,*use_iter);
                 std::string curChannelInfoDec = channelInfoType+" "+curChannelInfoName+";";
 
-                User* curUser = *user_iter;
+                User* curUser = *use_iter;
                 assert(isa<CallInst>(*curUser) && "channel not used by callInst");
                 CallInst* funcCallUser = &cast<CallInst>(*curUser);
                 int argSeq = getOperandArgSeq(funcCallUser,insn);
                 assert(argSeq!=-1 && "could not find argSeq");
                 Function* calledFunc = funcCallUser->getCalledFunction();
-                bool isWrChannel = cmpChannelAttr(calledFunc->getAttributes(),argSeq,CHANNELWR);
-                bool isRdChannel = cmpChannelAttr(calledFunc->getAttributes(),argSeq,CHANNELRD);
+                bool isWrChannel = cmpChannelAttr(calledFunc->getAttributes(),argSeq,Attributes::CHANNELWR);
+                bool isRdChannel = cmpChannelAttr(calledFunc->getAttributes(),argSeq,Attributes::CHANNELRD);
                 assert((isWrChannel^isRdChannel) && "got to be wr channel or rd channel");
 
                 std::string curChannelInfoInit = curChannelInfoName+".init(";
@@ -113,7 +113,7 @@ namespace GenCFunc {
             Function* calledFunc = cinsn->getCalledFunction();
             int packageSeq = getFuncSeq(calledFunc);
             assert(packageSeq!=-1 &&"cannot find function in module");
-            auto calleeArgIter = calledFunc->arg_begin();
+            Function::arg_iterator calleeArgIter = calledFunc->arg_begin();
 
             std::string returnPackageType = generateInputPackStructType(packageSeq);
             std::string returnPackageName = "argPackage"+boost::lexical_cast<std::string>(packageSeq);
@@ -208,7 +208,7 @@ namespace GenCFunc {
             signatureLine +="(";
             printTabbedLines(out_cfile,signatureLine);
             addBarSubTabs(true);
-            for(auto argIter = func->arg_begin(); argIter!=func->arg_end(); /*argIter++*/)
+            for(Function::arg_iterator argIter = func->arg_begin(); argIter!=func->arg_end(); /*argIter++*/)
             {
                 Argument* curFuncArg = &(cast<Argument>(*argIter));
                 Type* type2Print;
@@ -248,7 +248,7 @@ namespace GenCFunc {
             // first give each BB a name
             std::set<std::string> usedBbNames;
             int bbCount = 0;
-            for(auto bbIter = func->begin(); bbIter!=func->end(); bbIter++)
+            for(Function::iterator bbIter = func->begin(); bbIter!=func->end(); bbIter++)
             {
                 BasicBlock* curBB = &(cast<BasicBlock>(*bbIter));
 
@@ -283,13 +283,13 @@ namespace GenCFunc {
             std::map<BasicBlock*, std::vector<std::string>*> bbContentStr;
             std::map<BasicBlock*, std::vector<std::string>*> phiPreAssign;
             // go through once to generate the basic var and content
-            for(auto bbIter = func->begin(); bbIter!=func->end(); bbIter++)
+            for(Function::iterator bbIter = func->begin(); bbIter!=func->end(); bbIter++)
             {
                 BasicBlock* curBB = &(cast<BasicBlock>(*bbIter));
                 std::vector<std::string>* curBBContent = new std::vector<std::string>();
                 bbContentStr[curBB] = curBBContent;
 
-                for(auto insIter = curBB->begin(); insIter!=curBB->end(); insIter++)
+                for(BasicBlock::iterator insIter = curBB->begin(); insIter!=curBB->end(); insIter++)
                 {
                     Instruction* curIns = &(cast<Instruction>(*insIter));
                     if(specialExclude.count(curIns))
@@ -306,12 +306,12 @@ namespace GenCFunc {
             printTabbedLines(out_cfile,"{");
             addBarSubTabs(true);
             printTabbedLines(out_cfile,bodyPrefixStr);
-            for(auto varDeclIter = varDecl.begin(); varDeclIter!=varDecl.end(); varDeclIter++)
+            for(std::vector<std::string>::iterator varDeclIter = varDecl.begin(); varDeclIter!=varDecl.end(); varDeclIter++)
             {
                 std::string curDecl = *varDeclIter;
                 printTabbedLines(out_cfile,curDecl);
             }
-            for(auto bbIter = func->begin(); bbIter!=func->end(); bbIter++)
+            for(Function::iterator bbIter = func->begin(); bbIter!=func->end(); bbIter++)
             {
                 BasicBlock* curBB = &(cast<BasicBlock>(*bbIter));
                 std::string bbHeadStr = curBB->getName();
@@ -320,12 +320,12 @@ namespace GenCFunc {
 
                 std::vector<std::string>* curBBContent = bbContentStr[curBB];
                 int numInstLeft = curBBContent->size();
-                for(auto insStrIter = curBBContent->begin(); insStrIter!=curBBContent->end(); insStrIter++)
+                for(std::vector<std::string>::iterator insStrIter = curBBContent->begin(); insStrIter!=curBBContent->end(); insStrIter++)
                 {
                     if(numInstLeft==1 && phiPreAssign.count(curBB))
                     {
                         std::vector<std::string>* curBBPrePhiStr = phiPreAssign[curBB];
-                        for(auto prePhiStrIter = curBBPrePhiStr->begin();
+                        for(std::vector<std::string>::iterator prePhiStrIter = curBBPrePhiStr->begin();
                             prePhiStrIter!=curBBPrePhiStr->end();
                             prePhiStrIter++)
                         {
@@ -419,7 +419,7 @@ namespace GenCFunc {
                         // argument in the function -- so later we can
                         // make the connection properly
                         std::vector<Argument*>* userArguments = new std::vector<Argument*>();
-                        for(auto userIter = ai->user_begin(); userIter!= ai->user_end(); userIter++)
+                        for(auto userIter = ai->use_begin(); userIter!= ai->use_end(); userIter++)
                         {
                             if(isa<CallInst>(*userIter))
                             {
@@ -685,8 +685,8 @@ namespace GenCFunc {
                 std::string argumentName = curArg->getName();
                 // check if this argument is a fifo or axi_master
                 unsigned argSeq = curArg->getArgNo();
-                bool isWrChannel = cmpChannelAttr(func->getAttributes(),argSeq,CHANNELWR);
-                bool isRdChannel = cmpChannelAttr(func->getAttributes(),argSeq,CHANNELRD);
+                bool isWrChannel = cmpChannelAttr(func->getAttributes(),argSeq,Attributes::CHANNELWR);
+                bool isRdChannel = cmpChannelAttr(func->getAttributes(),argSeq,Attributes::CHANNELRD);
                 std::string directiveStr = directiveStrHead;
                 if(isWrChannel || isRdChannel)
                 {
@@ -911,7 +911,7 @@ namespace GenCFunc {
                 // in vivado hls -- the tcl script is in the comment
                 generateHLSTclInComment();
                 // directive tcl, dealing with how to specify each memory interface
-                // we check each memory read/write port, if they are not CHANNELWR/CHANNELRD
+                // we check each memory read/write port, if they are not Attributes::CHANNELWR/Attributes::CHANNELRD
                 // then they are axi master memory interface, else they are fifo
                 generateHLSDirectiveInComment();
                 // generate driver for snippet driving this accelerator

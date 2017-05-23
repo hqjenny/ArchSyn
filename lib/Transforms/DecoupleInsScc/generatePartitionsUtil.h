@@ -1,13 +1,13 @@
 #ifndef GENERATEPARTITIONSUTIL_H
 #define GENERATEPARTITIONSUTIL_H
 
-#include "llvm/IR/Instruction.h"
+#include "llvm/Instruction.h"
 #include "llvm/Pass.h"
-#include "llvm/IR/CFG.h"
+#include "llvm/Support/CFG.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Analysis/InstructionGraph.h"
-#include "llvm/IR/Constants.h"
-#include "llvm/IR/Dominators.h"
+#include "llvm/Constants.h"
+#include "llvm/Analysis/Dominators.h"
 #include "llvm/Analysis/PostDominators.h"
 #include "generatePartitions.h"
 
@@ -59,7 +59,7 @@ static void addArgTypeList(std::set<Instruction*>& vals2Send, std::vector<Type*>
     }
 }
 
-static BasicBlock* findDominator(BasicBlock* originalDominator,std::set<BasicBlock*>& allBBs, DominatorTree* DT)
+static BasicBlock* findDominator(BasicBlock* originalDominator,std::set<BasicBlock*>& allBBs, DominatorTreeBase<llvm::BasicBlock>* DT)
 {
     BasicBlock* dominator = originalDominator;
     for(auto bbIter = allBBs.begin(); bbIter!=allBBs.end(); bbIter++)
@@ -72,7 +72,7 @@ static BasicBlock* findDominator(BasicBlock* originalDominator,std::set<BasicBlo
     }
     return dominator;
 }
-static BasicBlock* findDominator(BasicBlock* originalDominator,BBMap2Ins& mapOfBBs,DominatorTree* DT )
+static BasicBlock* findDominator(BasicBlock* originalDominator,BBMap2Ins& mapOfBBs,DominatorTreeBase<llvm::BasicBlock>* DT )
 {
    std::set<BasicBlock*> allBBs;
    for(auto bmi = mapOfBBs.begin(), bme = mapOfBBs.end(); bmi!=bme; ++bmi)

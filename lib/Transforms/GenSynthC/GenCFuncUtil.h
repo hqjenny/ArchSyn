@@ -1,11 +1,11 @@
 #ifndef GENCFUNCUTIL_H
 #define GENCFUNCUTIL_H
 #include <string>
-#include "llvm/IR/DerivedTypes.h"
+#include "llvm//DerivedTypes.h"
 #include "llvm/Transforms/GenSynthC/GenSynthC.h"
 #include "llvm/Transforms/DecoupleInsScc/DecoupleInsScc.h"
-#include "llvm/IR/Constants.h"
-#include "llvm/IR/Module.h"
+#include "llvm//Constants.h"
+#include "llvm//Module.h"
 #include <boost/lexical_cast.hpp>
 #include "llvm/Transforms/Utils/ArchSynUtils.h"
 using namespace llvm;
@@ -162,9 +162,9 @@ std::string generateFifoChannelInfoName(Instruction* insn, User* user)
 {
     // see the seq of user it is
     int seq = 0;
-    for(auto user_iter = insn->user_begin(); user_iter != insn->user_end(); user_iter++)
+    for(Instruction::use_iterator use_iter = insn->use_begin(); use_iter != insn->use_end(); use_iter++)
     {
-        if(*user_iter == user)
+        if(*use_iter == user)
             break;
         seq++;
     }

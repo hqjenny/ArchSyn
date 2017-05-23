@@ -1,12 +1,12 @@
 
 #include "llvm/ADT/Statistic.h"
-#include "llvm/IR/Module.h"
+#include "llvm/Module.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/DecoupleInsScc/DecoupleInsScc.h"
 #include "llvm/Transforms/DecoupleMemAccess/DecoupleMemAccess.h"
 #include "llvm/Transforms/BoostException.h"
-#include "llvm/IR/Instructions.h"
+#include "llvm/Instructions.h"
 #include "llvm/Analysis/LoopInfo.h"
 #include <set>
 #include <boost/lexical_cast.hpp>
@@ -62,9 +62,11 @@ namespace llvm{
             for(auto funcIter = M.begin(); funcIter!=M.end(); funcIter++)
             {
                 Function& curFunc = *funcIter;
-                if(!curFunc.hasFnAttribute(GENERATEDATTR))
+                //if(!curFunc.hasFnAttribute(GENERATEDATTR))
+                if(!curFunc.getFnAttributes().hasAttribute(Attributes::GENERATEDATTR))
                 {
-                    if(curFunc.hasFnAttribute(TRANSFORMEDATTR))
+                    //if(curFunc.hasFnAttribute(TRANSFORMEDATTR))
+                    if(!curFunc.getFnAttributes().hasAttribute(Attributes::TRANSFORMEDATTR))
                         topLevelFunctions.push_back(funcIter);
                     continue;
                 }
@@ -87,10 +89,10 @@ namespace llvm{
                             LoadInst& li = cast<LoadInst>(curIns);
                             // we check if the result of this is directly written to an output port
                             // using store
-                            int numUser = std::distance(curIns.user_begin(),curIns.user_end());
+                            int numUser = std::distance(curIns.use_begin(),curIns.use_end());
                             if(numUser==1 )
                             {
-                                auto soleUserIter = curIns.user_begin();
+                                auto soleUserIter = curIns.use_begin();
                                 if(isa<StoreInst>(*soleUserIter))
                                 {
                                     StoreInst* si = cast<StoreInst>(*soleUserIter);
