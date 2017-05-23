@@ -1,10 +1,10 @@
 
 #include "llvm/ADT/Statistic.h"
-#include "llvm/IR/Module.h"
+#include "llvm/Module.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Analysis/DependenceAnalysis.h"
-#include "llvm/IR/Instructions.h"
+#include "llvm/Instructions.h"
 #include "llvm/Analysis/LoopInfo.h"
 #include "llvm/Transforms/GenPar/Genpar.h"
 #include "llvm/Transforms/BoostException.h"

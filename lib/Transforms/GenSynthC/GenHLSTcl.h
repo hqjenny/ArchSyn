@@ -3,13 +3,13 @@
 
 #include "llvm/ADT/SCCIterator.h"
 #include "llvm/ADT/Statistic.h"
-#include "llvm/IR/Function.h"
-#include "llvm/IR/Module.h"
+#include "llvm//Function.h"
+#include "llvm//Module.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
-#include "llvm/IR/IRBuilder.h"
+#include "llvm//IRBuilder.h"
 #include "llvm/Analysis/InstructionGraph.h"
-#include "llvm/IR/Dominators.h"
+#include "llvm/Analysis/Dominators.h"
 #include "llvm/Analysis/PostDominators.h"
 #include "llvm/Analysis/LoopInfo.h"
 #include "GenCFuncUtil.h"
@@ -84,7 +84,7 @@ namespace GenTCL{
         static std::string setIPProperty(std::string ipName, std::map<std::string, std::string>& propertyMap)
         {
             std::string setPropertyStr = "set_property -dict [list ";
-            for(auto pairIter = propertyMap.begin(); pairIter != propertyMap.end(); pairIter++)
+            for(std::map<std::string, std::string>::iterator pairIter = propertyMap.begin(); pairIter != propertyMap.end(); pairIter++)
             {
                 std::string propertyName = pairIter->first;
                 std::string propertyVal = pairIter->second;
@@ -157,7 +157,7 @@ namespace GenTCL{
 
             if(masterPorts.size()==1)
             {
-                for(auto slaveIter = slavePorts.begin(); slaveIter!=slavePorts.end(); slaveIter++)
+                for(std::vector<std::string>::iterator slaveIter = slavePorts.begin(); slaveIter!=slavePorts.end(); slaveIter++)
                 {
                     std::string curSlave = *slaveIter;
                     rtStr+=drivenAutobd(firstMasterPort,curSlave,true);
@@ -169,7 +169,7 @@ namespace GenTCL{
                 // for the first master, and then do the slave driven automation for the remaining masters
                 std::string slavePort = *slavePorts.begin();
                 rtStr+=drivenAutobd(firstMasterPort,slavePort,true);
-                for(auto masterIter = masterPorts.begin()+1; masterIter!=masterPorts.end(); masterIter++)
+                for(std::vector<std::string>::iterator masterIter = masterPorts.begin()+1; masterIter!=masterPorts.end(); masterIter++)
                 {
                     std::string curMaster = *masterIter;
                     rtStr+=drivenAutobd(curMaster,slavePort,false);
@@ -206,7 +206,7 @@ namespace GenTCL{
             // masterPorts are connected to slave ports of the instantiated axi
             std::string connectInterfaces="";
             int axiSlavePortCounter = 0;
-            for(auto masterPortIter = masterPorts.begin(); masterPortIter!= masterPorts.end(); masterPortIter++ )
+            for(std::vector<std::string>::iterator  masterPortIter = masterPorts.begin(); masterPortIter!= masterPorts.end(); masterPortIter++ )
             {
                 std::string curMasterPort = *masterPortIter;
                 std::string axiSlavePortStr =instanceName+"/S";
@@ -219,7 +219,7 @@ namespace GenTCL{
                 connectInterfaces+=generateSingleInterfaceConnection(curMasterPort,axiSlavePortStr);
             }
             int axiMasterPortCounter = 0;
-            for(auto slavePortIter=slavePorts.begin(); slavePortIter!=slavePorts.end(); slavePortIter++)
+            for(std::vector<std::string>::iterator slavePortIter=slavePorts.begin(); slavePortIter!=slavePorts.end(); slavePortIter++)
             {
                 std::string curSlavePort = *slavePortIter;
                 std::string axiMasterPortStr = instanceName+"/M";
@@ -326,7 +326,7 @@ namespace GenTCL{
                 std::string dataDecl=fifoDataType+" "+fifoDataName+";\n";
                 std::string readStr="";
                 std::string distributeStr="";
-                for(auto argIter = userArguments->begin(); argIter!=userArguments->end(); argIter++)
+                for(std::vector<Argument*>::iterator argIter = userArguments->begin(); argIter!=userArguments->end(); argIter++)
                 {
                     Argument* curArg = *argIter;
                     std::string curPortName = curArg->getName();
@@ -415,7 +415,7 @@ namespace GenTCL{
                 fifoIntfDir+=getFifoName();
                 fifoIntfDir+="\" ";
                 int argCounter=0;
-                for(auto argIter = userArguments->begin(); argIter!=userArguments->end(); argIter++)
+                for(std::vector<Argument*>::iterator argIter = userArguments->begin(); argIter!=userArguments->end(); argIter++)
                 {
                     Argument* curArg = *argIter;
                     std::string curArgName = curArg->getName();
@@ -749,7 +749,7 @@ namespace GenTCL{
             std::string instantiateCores="";
             //std::vector<std::string> coreInstances;
             std::vector<std::string> slavePorts;
-            for(auto coreIter = hlsCores.begin(); coreIter!=hlsCores.end(); coreIter++)
+            for(std::vector<CallInst*>::iterator coreIter = hlsCores.begin(); coreIter!=hlsCores.end(); coreIter++)
             {
                 CallInst* curCallInst = *coreIter;
                 std::string functionName = curCallInst->getCalledFunction()->getName();
@@ -761,7 +761,7 @@ namespace GenTCL{
             }
             // also there would be whole bunch of distributor fifo things
             // we check the fifo
-            for(auto fifoGenIter = allFifoGens.begin(); fifoGenIter!=allFifoGens.end(); fifoGenIter++)
+            for(std::vector<HLSFifoGenerator*>::iterator fifoGenIter = allFifoGens.begin(); fifoGenIter!=allFifoGens.end(); fifoGenIter++)
             {
                 HLSFifoGenerator* fg = *fifoGenIter;
                 std::vector<Argument*>* allInvolved =  fg->userArguments;
@@ -794,7 +794,7 @@ namespace GenTCL{
                 connectAxiM+="set_property -dict [list CONFIG.PCW_USE_S_AXI_ACP {1} CONFIG.PCW_USE_DEFAULT_ACP_USER_VAL {1}] [get_bd_cells ";
                 connectAxiM+=HLSPSIPInstName;
                 connectAxiM+="]\n";
-                for(auto arg2aximIter = arg2axim.begin(); arg2aximIter!=arg2axim.end(); arg2aximIter++)
+                for(std::set<Argument*>::iterator arg2aximIter = arg2axim.begin(); arg2aximIter!=arg2axim.end(); arg2aximIter++)
                 {
                     Argument* curArg = *arg2aximIter;
                     std::string funcName = curArg->getParent()->getName();
@@ -826,7 +826,7 @@ namespace GenTCL{
         std::string setupCores()
         {
             std::string setupStr = "";
-            for(auto funcIter= hlsCores.begin(); funcIter!=hlsCores.end();funcIter++)
+            for(std::vector<CallInst*>::iterator funcIter= hlsCores.begin(); funcIter!=hlsCores.end();funcIter++)
             {
                 setupStr+="setup";
                 CallInst* curCallInst = *funcIter;
@@ -836,7 +836,7 @@ namespace GenTCL{
                 // do the setup -- we check the argument of the called function
                 // if it is using Argument from a higher level function, we pass it in
                 bool addedPrevArg = false;
-                for(auto opIter = curCallInst->op_begin(); opIter!=curCallInst->op_end(); opIter++)
+                for(User::op_iterator opIter = curCallInst->op_begin(); opIter!=curCallInst->op_end(); opIter++)
                 {
                     Value* curOperand = *opIter;
                     if(isa<Argument>(*curOperand))
@@ -880,7 +880,7 @@ namespace GenTCL{
             std::string startAll = "";
             std::string checkDone = "";
 
-            for(auto stageIter = hlsCores.begin(); stageIter!=hlsCores.end(); stageIter++)
+            for(std::vector<CallInst*>::iterator stageIter = hlsCores.begin(); stageIter!=hlsCores.end(); stageIter++)
             {
                 CallInst* curStage = *stageIter;
                 Function* curStageFunc = curStage->getCalledFunction();

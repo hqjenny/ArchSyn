@@ -1,14 +1,15 @@
-#include "llvm/IR/Instructions.h"
-#include "llvm/IR/IntrinsicInst.h"
-#include "llvm/IR/Module.h"
+#include "llvm/Instructions.h"
+#include "llvm/IntrinsicInst.h"
+#include "llvm/Module.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Analysis/InstructionGraph.h"
 #include "llvm/Support/Casting.h"
-#include "llvm/IR/Dominators.h"
+#include "llvm/Analysis/Dominators.h"
 #include "llvm/Analysis/PostDominators.h"
 #include "llvm/Analysis/LoopInfo.h"
-#include "llvm/Transforms/DecoupleInsScc/DecoupleInsScc.h"
+#include "llvm/Transforms/Utils/ArchSynUtils.h"
+//#include "llvm/Transforms/DecoupleInsScc/DecoupleInsScc.h"
 
 using namespace llvm;
 static void addAncestorsNotPDominatedBy(BasicBlock* tgtBB, std::vector<BasicBlock*>* curPredecessors,
@@ -86,7 +87,7 @@ void InstructionGraph::addToInstructionGraph(Instruction *I, std::vector<BasicBl
 
 
     // Look for dependent instruction
-    for(Value::user_iterator curUser = I->user_begin(), endUser = I->user_end(); curUser != endUser; ++curUser )
+    for(Value::use_iterator curUser = I->use_begin(), endUser = I->use_end(); curUser != endUser; ++curUser )
     {
         if(!isa<Instruction>(*curUser))
         {
@@ -169,7 +170,7 @@ void InstructionGraph::addToInstructionGraph(Instruction *I, std::vector<BasicBl
 }
 
 void InstructionGraph::getAnalysisUsage(AnalysisUsage &AU) const {
-    AU.addRequiredTransitive<DominatorTreeWrapperPass>();
+    AU.addRequiredTransitive<DominatorTree>();
     AU.addRequiredTransitive<PostDominatorTree>();
     AU.addRequiredTransitive<LoopInfo>();
     AU.setPreservesAll();
@@ -182,7 +183,8 @@ bool InstructionGraph::runOnFunction(Function &M) {
     errs()<<"ins grph ";
 
     // if the function dppcreated, then we skip
-    if(M.hasFnAttribute(GENERATEDATTR))
+    //if(M.hasFnAttr(GENERATEDATTR))
+    if(M.getFnAttributes().hasAttribute(Attributes::GENERATEDATTR))
         return false;
     errs()<<"skip check";
     Func = &M;

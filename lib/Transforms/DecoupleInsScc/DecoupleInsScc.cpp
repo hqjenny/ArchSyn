@@ -13,14 +13,14 @@
 //===----------------------------------------------------------------------===//
 #include "llvm/ADT/SCCIterator.h"
 #include "llvm/ADT/Statistic.h"
-#include "llvm/IR/Function.h"
-#include "llvm/IR/Module.h"
+#include "llvm/Function.h"
+#include "llvm/Module.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
-#include "llvm/IR/IRBuilder.h"
+#include "llvm/IRBuilder.h"
 #include "llvm/Transforms/DecoupleInsScc/DecoupleInsScc.h"
 #include "llvm/Analysis/InstructionGraph.h"
-#include "llvm/IR/Dominators.h"
+#include "llvm/Analysis/Dominators.h"
 #include "llvm/Analysis/PostDominators.h"
 #include "llvm/Analysis/LoopInfo.h"
 #include "generatePartitionsUtil.h"
@@ -140,7 +140,7 @@ namespace partGen {
             // this will be the first basicblock we need to convert
             // then we shall see where each bb diverge?
 
-            DominatorTree* DT= &(top->getAnalysisIfAvailable<DominatorTreeWrapperPass>()->getDomTree());
+            DominatorTreeBase<llvm::BasicBlock>* DT= &(top->getAnalysisIfAvailable<DominatorTree>()->getBase());
             dominator = findDominator(dominator,sourceBBs,DT);
             dominator = findDominator(dominator,insBBs,DT);
 
@@ -480,7 +480,7 @@ errs()<<"\t\t\t\t\t\tafter addPathBBsToBBMap : \n";
         void DAGPartition::checkDominator()
         {
 
-            DominatorTree* DT= &(top->getAnalysisIfAvailable<DominatorTreeWrapperPass>()->getDomTree());
+            DominatorTreeBase<llvm::BasicBlock>* DT= &(top->getAnalysisIfAvailable<DominatorTree>()->getBase());
             BasicBlock* domBB = *(AllBBs.begin());
             //for(unsigned int bbInd = 1; bbInd < AllBBs.size(); bbInd++)
             for(auto bbIter = AllBBs.begin(); bbIter!=AllBBs.end(); bbIter++)
@@ -562,7 +562,7 @@ errs()<<"\t\t\t\t\t\tafter addPathBBsToBBMap : \n";
             }
             else
             {
-                for(Value::user_iterator curUser = insPt->user_begin(), endUser = insPt->user_end(); curUser != endUser; ++curUser )
+                for(Value::use_iterator curUser = insPt->use_begin(), endUser = insPt->use_end(); curUser != endUser; ++curUser )
                 {
                     assert(isa<Instruction>(*curUser));
                     // now multiple guy can use this value
@@ -810,7 +810,8 @@ errs()<<"\t\t\t\t\t\t after generate BB List : \n";
 
     bool DecoupleInsScc::runOnFunction(Function &F)
     {
-        if(F.hasFnAttribute(GENERATEDATTR))
+        //if(F.hasFnAttribute(GENERATEDATTR))
+        if(F.getFnAttributes().hasAttribute(Attributes::GENERATEDATTR))
             return false;
         errs() << "Try to decouple function: ";
         errs().write_escaped(F.getName()) << '\n';
@@ -1056,7 +1057,7 @@ errs()<<"\t\t\t\t\t\t after generate BB List : \n";
                     //toBeDeleted->removeFromParent();;
                     errs()<<"not deleting \n";
                 }
-                targetFunc->addFnAttr(TRANSFORMEDATTR,"true");
+                targetFunc->addFnAttr(Attributes::TRANSFORMEDATTR);
             }
         }
         // clear up
@@ -1077,7 +1078,8 @@ errs()<<"\t\t\t\t\t\t after generate BB List : \n";
 
         BasicBlock* newlyAdded = newReplacementBBBuilder->GetInsertBlock();
         Function* curFunc = targetFunc;
-        if(curFunc->hasFnAttribute(TRANSFORMEDATTR))
+        //if(curFunc->hasFnAttribute(TRANSFORMEDATTR))
+        if(curFunc->getFnAttributes().hasAttribute(Attributes::TRANSFORMEDATTR))
         {
             std::vector<BasicBlock*> DeadBlocks;
             for (Function::iterator I = targetFunc->begin(), E = targetFunc->end(); I != E; ++I)
@@ -1124,7 +1126,7 @@ errs()<<"\t\t\t\t\t\t after generate BB List : \n";
     }
     void DecoupleInsScc::getAnalysisUsage(AnalysisUsage &AU) const {
         AU.addRequired<InstructionGraph>();
-        AU.addRequired<DominatorTreeWrapperPass>();
+        AU.addRequired<DominatorTree>();
         AU.addRequired<PostDominatorTree>();
         AU.addRequired<LoopInfo>();
         //AU.setPreservesAll();

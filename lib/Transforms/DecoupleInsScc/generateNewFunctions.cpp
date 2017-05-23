@@ -1,13 +1,13 @@
 #include "llvm/ADT/SCCIterator.h"
 #include "llvm/ADT/Statistic.h"
-#include "llvm/IR/Function.h"
-#include "llvm/IR/Module.h"
+#include "llvm/Function.h"
+#include "llvm/Module.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
-#include "llvm/IR/IRBuilder.h"
+#include "llvm/IRBuilder.h"
 #include "llvm/Transforms/DecoupleInsScc/DecoupleInsScc.h"
 #include "llvm/Analysis/InstructionGraph.h"
-#include "llvm/IR/Dominators.h"
+#include "llvm/Analysis/Dominators.h"
 #include "llvm/Analysis/PostDominators.h"
 #include "llvm/Analysis/LoopInfo.h"
 #include "generatePartitionsUtil.h"
@@ -96,11 +96,11 @@ namespace partGen{
             {
                 curArg->setName(oldVal->getName());
                 argList->push_back(oldVal);
-                B.addAttribute(NORMALARGATTR);
+                B.addAttribute(Attributes::NORMALARGATTR);
                 // also we want to add the original arguments attribute
                 Argument& oldArg = cast<Argument>(*oldVal);
                 if(oldArg.hasNoCaptureAttr())
-                    B.addAttribute(Attribute::NoCapture);
+                    B.addAttribute(Attributes::NoCapture);
             }
             else
             {
@@ -113,7 +113,7 @@ namespace partGen{
                 newArgName=newArgName+boost::lexical_cast<std::string>(oldInsIndex);
                 if(srcInstruction.count(oldIns))
                 {
-                    B.addAttribute(CHANNELRD);
+                    B.addAttribute(Attributes::CHANNELRD);
 
                     newArgName=newArgName+"_rd";
                     errs()<<*oldIns<<"\n";
@@ -128,7 +128,7 @@ namespace partGen{
                 }
                 else
                 {
-                    B.addAttribute(CHANNELWR);
+                    B.addAttribute(Attributes::CHANNELWR);
                     newArgName=newArgName+"_wr";
                     assert(ins2AllocatedChannel.find(oldIns)==ins2AllocatedChannel.end()
                             &&"sr partition sees allocated channel");
@@ -146,11 +146,15 @@ namespace partGen{
                 }
                 curArg->setName(newArgName);
             }
-            curFuncArg->addAttr(AttributeSet::get(actualNewFunc->getContext(), curFuncArg->getArgNo() + 1, B));
+            //curFuncArg->addAttr(Attributes::get(actualNewFunc->getContext(), curFuncArg->getArgNo() + 1, B));
+            
+            AttributeWithIndex AWI = AttributeWithIndex::get(curFuncArg->getArgNo() + 1, Attributes::get(actualNewFunc->getContext(), B)); 
+            curFuncArg->addAttr(AWI.Attrs);
+
 
         }
         errs()<<"finished populate function argument list\n";
-        actualNewFunc->addFnAttr(GENERATEDATTR,"true");
+        actualNewFunc->addFnAttr(Attributes::GENERATEDATTR);
         return actualNewFunc;
     }
 
