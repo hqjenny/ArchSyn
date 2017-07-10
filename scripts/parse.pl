@@ -5,7 +5,7 @@ use Cwd;
 use Time::localtime;
 use Time::gmtime;
 use File::Compare;
-use File::Path 'rmtree';
+use File::Path qw(rmtree make_path);
 use File::Copy;
 
 my $dir = getcwd;
@@ -31,15 +31,16 @@ else{
         $line = $_;
         chomp ($line);
 
+        # Parse func
         if($line =~m /#FUNCBEGIN:(.*)/){
             $func = $1;
-            $path = $dir."\/".$func;
-            #print $path;
+            $path = $dir."\/vivado_hls\/".$func;
+            print $path;
             if (-e $path) 
             {
             #    rmtree $path;
             }
-            mkdir $path;
+            make_path $path;
             #copy($dir."\/".$fn, $path."\/".$func.".cpp") or die "Copy failed: $!"; 
             
             open FILEW, ">$path\/$func.cpp" or die $!;
@@ -72,7 +73,7 @@ else{
             close FILEW; 
             $DIRECTIVEBEGIN = 0;
             chdir $path;
-            #system("vivado_hls -f run_hls.tcl");
+            system("vivado_hls -f run_hls.tcl");
             chdir $dir;
         }
         if($DIRECTIVEBEGIN){
