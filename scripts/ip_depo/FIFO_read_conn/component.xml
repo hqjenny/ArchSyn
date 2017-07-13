@@ -205,14 +205,14 @@
     <spirit:fileSet>
       <spirit:name>xilinx_anylanguagesynthesis_view_fileset</spirit:name>
       <spirit:file>
-        <spirit:name>/media/huangqij/Jenny/knn/iplib/src/FIFO_read_conn.v</spirit:name>
+        <spirit:name>../iplib/src/FIFO_read_conn.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
       </spirit:file>
     </spirit:fileSet>
     <spirit:fileSet>
       <spirit:name>xilinx_anylanguagebehavioralsimulation_view_fileset</spirit:name>
       <spirit:file>
-        <spirit:name>/media/huangqij/Jenny/knn/iplib/src/FIFO_read_conn.v</spirit:name>
+        <spirit:name>../iplib/src/FIFO_read_conn.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
       </spirit:file>
     </spirit:fileSet>
