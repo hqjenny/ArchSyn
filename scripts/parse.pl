@@ -65,6 +65,9 @@ else{
         }
         if($line =~m /#FUNCTCLBEGIN:(.*)/){
             open FILEW, ">$path\/run_hls.tcl" or die $!;
+            if($func eq $ARGV[0]){
+                print FILEW "set common_anc_dir $dir\n";
+            }
             $FUNCTCLBEGIN = 1;
         }
 
@@ -113,5 +116,7 @@ else{
 
 }
 
+system (" cp -r ".$ARGV[1]."/ip_depo ./vivado_hls");
+system (" cp -r ".$ARGV[1]."/iplib ./vivado_hls/ip_depo");
 close FILEW_F; 
 close FILEW_D; 
