@@ -110,8 +110,10 @@ else{
         # Parse fifo
         if($line =~m /#FIFOEND:(.*)/){
             $FIFOBEGIN = 0;
+            close FILEW;
         }
         if($FIFOBEGIN){
+            $path = $dir."\/vivado_hls\/".$ARGV[0];
             open FILEW, ">>$path\/run_hls.tcl" or die $!;
             print FILEW $line."\n";
         }
@@ -126,5 +128,4 @@ else{
 
 system (" cp -r ".$ARGV[1]."/ip_depo ./vivado_hls");
 system (" cp -r ".$ARGV[1]."/iplib ./vivado_hls/ip_depo");
-close FILEW; 
 close FILEW_D; 
