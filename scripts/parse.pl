@@ -1,3 +1,11 @@
+###################################################################### 
+# This is used for parsing Archsyn generated file with_cf_dup_hls.cpp
+## Inputs:
+## ARGV[0] - top function name 
+## ARGV[1] - path to the Archsyn scripts folder
+######################################################################
+
+
 #!/usr/bin/perl
 use warnings;
 use strict;
@@ -21,7 +29,6 @@ my $DIRECTIVEBEGIN = 0;
 my $DRIVERBEGIN = 0;
 my $FIFOBEGIN = 0;
 open FILEW_D, ">$dir\/driver.cpp" or die $!;
-open FILEW_F, ">$dir\/fifo.tcl" or die $!;
 
 if(!open FILE,$fn ){
     print $!;
@@ -105,7 +112,8 @@ else{
             $FIFOBEGIN = 0;
         }
         if($FIFOBEGIN){
-            print FILEW_F $line."\n";
+            open FILEW, ">>$path\/run_hls.tcl" or die $!;
+            print FILEW $line."\n";
         }
         if($line =~m /#FIFOBEGIN:(.*)/){
             $FIFOBEGIN = 1;
@@ -118,5 +126,5 @@ else{
 
 system (" cp -r ".$ARGV[1]."/ip_depo ./vivado_hls");
 system (" cp -r ".$ARGV[1]."/iplib ./vivado_hls/ip_depo");
-close FILEW_F; 
+close FILEW; 
 close FILEW_D; 
