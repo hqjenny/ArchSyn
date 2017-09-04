@@ -25,5 +25,6 @@ For this example run `perl parse.pl spmv <ARCHSYN_ROOT>/ArchSyn/scripts`
 7. Run Vivado, 
 `cd vivado_hls/spmv`
 `vivado -source run_hls.tcl`
-
-
+8. In Vivado GUI, select the Sources tab and right click on the "design_1 (design_1.bd)" and choose "Create HDL Wrapper"
+9. Compile the project 
+10. Ready for running! Remember to include the code in driver.cpp in your project.  
