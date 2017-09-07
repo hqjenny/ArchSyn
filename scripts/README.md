@@ -11,7 +11,7 @@ https://llvm.org/docs/CMake.html
 You should see the executables: gen-dpp, gen-par, gen-sync and decoup-mem, under the /bin folder 
 
 ## To run it: 
-We have a sample design under ArchSyn/archsyn_regression.  
+We have a sample design spmv under ArchSyn/archsyn_regression.  
 1. `cd <ARCHSYN_ROOT>/ArchSyn/archsyn_regression`
 2. Edit the path in install_dir.sh to your LLVM bin folder 
 3. The source code is archsyn_regression/spmv/spmv.cpp, to compile it 
@@ -27,4 +27,8 @@ For this example run `perl parse.pl spmv <ARCHSYN_ROOT>/ArchSyn/scripts`
 `vivado -source run_hls.tcl`
 8. In Vivado GUI, select the Sources tab and right click on the "design_1 (design_1.bd)" and choose "Create HDL Wrapper"
 9. Compile the project 
-10. Ready for running! Remember to include the code in driver.cpp in your project.  
+10. Ready for running! Remember to include the code in driver.cpp in your project.
+
+## To exploit coarse-grained parallelism
+
+We have a sample design fdtd under ArchSyn/archsyn_regression.  
