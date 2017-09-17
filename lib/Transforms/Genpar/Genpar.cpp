@@ -1,4 +1,3 @@
-
 #include "llvm/ADT/Statistic.h"
 #include "llvm/IR/Module.h"
 #include "llvm/Pass.h"
@@ -20,144 +19,38 @@
 #include <boost/lexical_cast.hpp>
 using namespace llvm;
 
+namespace llvm {
 
-/*namespace boost{
-    void throw_exception(std::exception const & e)
-    {
-        errs()<<"boost exception";
-        exit(1);
-    }
-}*/
-
-static cl::opt<std::string> FunctionName("clone", cl::desc("Specify function name to be changed"), cl::value_desc("function name"));
-
-
-namespace llvm{
-    struct AddFunctionArgs: public ModulePass {
-        static char ID; // Pass ID, replacement for typeid
-        llvm::raw_ostream* out_c;
-        bool printDA;
-
-        AddFunctionArgs(llvm::raw_ostream& OS) : ModulePass(ID){
-            out_c = &OS;
-            //printDA = DAInfo;
-        }
-
-        bool runOnModule(Module &M) override
-        {
-            ValueToValueMapTy VMap;
-
-            // Find the function
-            Module::FunctionListType &funcs = M.getFunctionList();
-            Function * F;            
-            for (Module::FunctionListType::iterator it = funcs.begin(),
-                    it_end = funcs.end(); it != it_end; ++it) {
-                F = cast<Function>(it);
-                errs() << F->getName() << "\n";
-                if(F->getName() == FunctionName){
-                    break;    
-                }
-            }
-
-            // Create a new function
-            // Need to update Function Types 
-            //FunctionType *ft = F->getFunctionType();
-            //F = Function::Create(ft, F->getLinkage());
-            //ValueToValueMapTy VMap;
-            //Function* F = CloneFunction(func, VMap, /*ModuleLevelChanges)
-            std::vector<llvm::Type *> ArgTypes;
-            FunctionType *ft = F->getFunctionType();
-            for (Function::const_arg_iterator I = F->arg_begin(), E=F->arg_end(); I!=E; ++I){
-                // Duplicate the arguments 
-                ArgTypes.push_back(I->getType());
-                ArgTypes.push_back(I->getType());
-            }
-
-            //FunctionType* FTy = FunctionType::get(F->getFunctionType()->getFunctionType(), ArgTypes, F->getFunctionType()->isVarArg());
-            // From CloneFunction.cpp
-            FunctionType* FTy = FunctionType::get(F->getFunctionType()->getReturnType(), ArgTypes, F->getFunctionType()->isVarArg());
-
-            // Gather the arguments that needs to be duplicated 
-            Function *NewF = Function::Create(FTy, F->getLinkage(), F->getName());
-            Function::arg_iterator DestI = NewF-> arg_begin();
-            for (Function::const_arg_iterator I = F->arg_begin(), E=F->arg_end(); I!=E; ++I){
-               DestI -> setName(I->getName()); 
-               VMap[I] = DestI++;
-            }
-            
-            SmallVector<ReturnInst*,8> Returns;
-            CloneFunctionInto(NewF, F, VMap, /*ModuleLevelChanges*/false, Returns);
-            // Refer to ArgumentPromotion.cpp 
-            // Change the module symbol lookup table? 
-            NewF->copyAttributesFrom(F);
-            F->getParent()->getFunctionList().insert(F, NewF);
-            
-            // ? Replace the argument used in the function bodyreplaceDominatedUsesWith ?
-            
-            SmallVector<Value*, 16> Args;
-                llvm::CallSite CS(F->user_back());
-                assert(CS.getCalledFunction() == F);
-                Instruction *Call = CS.getInstruction();
-                const AttributeSet &CallPAL = CS.getAttributes();
-
-                // Loop over the operands, inserting GEP and loads in the caller as
-                // appropriate.
-                CallSite::arg_iterator AI = CS.arg_begin();
-                unsigned ArgIndex = 1;
-                for (Function::arg_iterator I = F->arg_begin(), E = F->arg_end();
-                    I != E; ++I, ++AI, ++ArgIndex){
-                    // Duplicate each arguments 
-                        Args.push_back(*AI);          // Unmodified argument
-                        ArgIndex++;
-                        Args.push_back(*AI);          // Unmodified argument
-                }
-      
-            }
-            // Replace CallSite
-            // DeadArgumentElimination
-            
-    };
-
-
-    //struct Genpar : public uunctionPass {
+    /// \brief A passes to duplicate parallel loop body 
     struct Genpar : public ModulePass {
         static char ID;
         llvm::raw_ostream* out_c;
         bool printDA;
-        //Genpar() : FunctinPass(ID) {}
         Genpar() : ModulePass(ID) {}
-        //Genpar(llvm::raw_ostream& OS, bool DAInfo) : FunctionPass(ID){
-        Genpar(llvm::raw_ostream& OS, bool DAInfo) : ModulePass(ID){
+        Genpar(llvm::raw_ostream& OS, bool DAInfo) : ModulePass(ID) {
             out_c= &OS;
             printDA = DAInfo;
         }
 
-
-
-        void cloneLoop(Loop* curLoop, ValueToValueMapTy& VMap)
-        {
+        // Clone the BBs in a loops
+        void cloneLoop(Loop* curLoop, ValueToValueMapTy& VMap) {
             BasicBlock* originalHead = curLoop->getHeader();
             BasicBlock* originalExiting = curLoop->getExitingBlock();
             char* NameSuffix = "dup";
             std::vector<BasicBlock*> dupedBBs;
-            for(auto BI = curLoop->getBlocks().begin(); BI!=curLoop->getBlocks().end(); BI++)
-            {
+            for (auto BI = curLoop->getBlocks().begin(); \
+                BI != curLoop->getBlocks().end(); BI++) {
                 const BasicBlock* BB = *BI;
 
                 // Create a new basic block and copy instructions into it!
                 BasicBlock *CBB = CloneBasicBlock(BB, VMap, NameSuffix,originalHead->getParent());
-
-                //JENNY: Uppdate usage of the input arguments
-                
-                
-
 
                 // Add basic block mapping.
                 // Mapping: Old BB - New BB 
                 VMap[BB] = CBB;
                 dupedBBs.push_back(CBB);
             }
-            // we will add instructions to compute new bounds -- right before the header
+            // We will add instructions to compute new bounds -- right before the header
             // of the original loop
 
             Value* newHead = VMap[originalHead];
@@ -168,50 +61,44 @@ namespace llvm{
 
             TerminatorInst* exitingIns = originalExiting->getTerminator();
             int numSuc = exitingIns->getNumSuccessors();
-            for(int sucInd = 0; sucInd<numSuc; sucInd++)
-            {
+            for (int sucInd = 0; sucInd<numSuc; sucInd++) {
                 BasicBlock* curSuc = exitingIns->getSuccessor(sucInd);
                 // the successor is not part of the loop
-                if(VMap.find(curSuc)==VMap.end())
-                {
+                if(VMap.find(curSuc)==VMap.end()) {
                     exitingIns->setSuccessor(sucInd,dyn_cast<BasicBlock>(newHead));
                 }
             }
             //errs()<<"Terminator "<<*exitingIns<<" XXXXXXXXXXXXXXXXXXXXXXXX\n";
             // now through the duplicated basic block
-            for(auto dupBBIter = dupedBBs.begin();dupBBIter!= dupedBBs.end();dupBBIter++)
-            {
+            for (auto dupBBIter = dupedBBs.begin();dupBBIter!= dupedBBs.end();dupBBIter++) {
                 BasicBlock* curBB = *dupBBIter;
 
-                for(auto dupInsIter = curBB->begin(); dupInsIter!= curBB->end(); dupInsIter++)
-                {
+                for (auto dupInsIter = curBB->begin(); dupInsIter!= curBB->end(); dupInsIter++) {
                     Instruction* curIns = dyn_cast<Instruction>(dupInsIter);
                     PHINode* curPhi = dyn_cast<PHINode>(dupInsIter);
-                    if(curPhi)
-                    {
+
+                    if (curPhi) {
                         int numIncomingEdges = curPhi->getNumIncomingValues();
-                        for(int i=0; i < numIncomingEdges; i++)
-                        {
+
+                        for (int i=0; i < numIncomingEdges; i++) {
                             // Map the phi to new duped incomingblock 
                             BasicBlock* incomingBlock = curPhi->getIncomingBlock(i);
-                            if(VMap.find(incomingBlock)!=VMap.end())
-                            {
+                            if (VMap.find(incomingBlock)!=VMap.end()) {
                                 BasicBlock* newIncomingBlock = dyn_cast<BasicBlock>(VMap[incomingBlock]);
                                 curPhi->setIncomingBlock(i,newIncomingBlock);
-                            }
-                            else
-                            {
+
+                            } else {
                                 curPhi->setIncomingBlock(i,originalExiting);
                             }
 
                         }
                     }
+
                     int numOperands = curIns->getNumOperands();
-                    for(int opInd = 0; opInd < numOperands; opInd++)
-                    {
+                    for (int opInd = 0; opInd < numOperands; opInd++) {
                         Value* originalOperand = curIns->getOperand(opInd);
-                        if(VMap.find(originalOperand)!=VMap.end())
-                        {
+
+                        if (VMap.find(originalOperand)!=VMap.end()) {
                             Value* newOperand = VMap[originalOperand];
                             curIns->setOperand(opInd,newOperand);
                         }
@@ -221,16 +108,15 @@ namespace llvm{
             
             errs()<<"=========================================end of clone=========\n";
         }
-        void printInstructionTree(Instruction* m, std::vector<Instruction*>& storage)
-        {
-            if(std::find(storage.begin(),storage.end(),m)!=storage.end())
+
+        void printInstructionTree(Instruction* m, std::vector<Instruction*>& storage) {
+            if (std::find(storage.begin(),storage.end(),m)!=storage.end())
                 return;
             storage.push_back(m);
-            for(unsigned int opInd = 0; opInd < m->getNumOperands(); opInd++)
-            {
+            for(unsigned int opInd = 0; opInd < m->getNumOperands(); opInd++) {
                 Instruction* curOperandIns = dyn_cast<Instruction>(m->getOperand(opInd));
-                if(curOperandIns)
-                {
+
+                if(curOperandIns) {
                     errs()<<*curOperandIns<<"\n";
                     printInstructionTree(curOperandIns, storage);
                 }
@@ -238,39 +124,33 @@ namespace llvm{
             }
         }
 
-        void dfsBackward(std::vector<Value*>& storage, PHINode*& initPhi, Instruction* curHop, Loop* curLoop=NULL)
-        {
-            if(std::find(storage.begin(),storage.end(),curHop)!=storage.end())
+        void dfsBackward(std::vector<Value*>& storage, PHINode*& initPhi, Instruction* curHop, Loop* curLoop=NULL) {
+            if (std::find(storage.begin(),storage.end(),curHop)!=storage.end())
                 return;
             storage.push_back(curHop);
-            if(dyn_cast<PHINode>(curHop))
-            {
+
+            if (dyn_cast<PHINode>(curHop)) {
                 // if phi is having one incoming edge from outside the loop
                 // and the value is from outside the loop
                 // then this is the initPhi
                 // FIXME:Again we make assumptions about loop structure
                 PHINode* curPhi = dyn_cast<PHINode>(curHop);
 
-                if(curLoop && curLoop->getHeader() == curPhi->getParent() )
+                if (curLoop && curLoop->getHeader() == curPhi->getParent() )
                     initPhi = curPhi;
-
-
             }
-            for(unsigned int i=0; i<curHop->getNumOperands(); i++)
-            {
+            for (unsigned int i=0; i<curHop->getNumOperands(); i++) {
                 Value* curOperand = curHop->getOperand(i);
                 Instruction* curIns = dyn_cast<Instruction>(curOperand);
 
-                if(curIns)
-                {
+                if (curIns) {
                     dfsBackward(storage, initPhi, curIns, curLoop);
                 }
             }
         }
 
 
-        CmpInst* getExitCmp(Loop* curLoop)
-        {
+        CmpInst* getExitCmp(Loop* curLoop) {
             BasicBlock* lastBlock = curLoop->getExitingBlock();
             BranchInst* term = dyn_cast<BranchInst>(lastBlock->getTerminator());
             assert(term->isConditional());
@@ -278,58 +158,56 @@ namespace llvm{
             return compareCondition;
         }
 
-        BasicBlock* getTakenTarget(BasicBlock* exitingBB)
-        {
+        BasicBlock* getTakenTarget(BasicBlock* exitingBB) {
             BranchInst* term = dyn_cast<BranchInst>(exitingBB->getTerminator());
             // 0th is the condition, 1st is the taken
             Value* taken = term->getOperand(2);
             return dyn_cast<BasicBlock>(taken);
         }
 
-
-        void replaceAllUsesOfWithIn(Value *I, Value *J, BasicBlock *BB)
-        {
+        void replaceAllUsesOfWithIn(Value *I, Value *J, BasicBlock *BB) {
             for (llvm::Value::user_iterator UI = I->user_begin(), UE = I->user_end(); UI != UE;) {
                 Use &TheUse = UI.getUse();
                 ++UI;
-                if (Instruction *II = dyn_cast<Instruction>(TheUse.getUser()))
-                {
+                if (Instruction *II = dyn_cast<Instruction>(TheUse.getUser())) {
                     if (BB == II->getParent())
                         II->replaceUsesOfWith(I, J);
                 }
             }
         }
 
-        //bool runOnFunction(Function &F) override
-        bool runOnModule(Module &M) override
-        {
+        bool runOnModule(Module &M) override {
            
             Module::FunctionListType &Fs = M.getFunctionList();
 
-            for (Module::FunctionListType::iterator it = Fs.begin(),
-                    it_end = Fs.end(); it != it_end; ++it) {
-                Function &F = *it;
-                errs() << F.getName() << "\t";
+            for (Module::FunctionListType::iterator FI = Fs.begin(),
+                    FE = Fs.end(); FI != FE; ++FI) {
+                Function &F = *FI;
                 
                 //(*out_c).write_escaped(F.getName()) << '\n';
                 DependenceAnalysis* DA = getAnalysisIfAvailable<DependenceAnalysis>();
-                /* USE this line to print out the info about memory reference independence */
-                if(printDA)
-                {
-                    DA->print(errs(),F.getParent());
+
+                // USE this line to print out the info about memory reference independence 
+                if (printDA) {
+                    DA->print(errs(), F.getParent());
                     return false;
                 }
-                LoopInfo* li = getAnalysisIfAvailable<LoopInfo>();
+
+                LoopInfo* LI = &getAnalysis<LoopInfo>(F);
+ 
+                if (!LI){
+                    errs() << F.getName() << "\t";
+                    errs() <<"LoopInfo not available."<<"\n";
+                }
+
                 //ScalarEvolution *se = getAnalysisIfAvailable<ScalarEvolution>();
                 ValueToValueMapTy VMap;
                 // this part duplicate the outermost loop
                 // and change the bound
-                for(auto iter = li->begin(); iter!= li->end(); iter++)
-                {
-                    Loop* curLoop = *iter;
+                for (auto I = LI->begin(), E= LI->end(); I!= E; I++) {
+                    Loop* curLoop = *I;
 
-                    if(curLoop->getLoopDepth()==1)
-                    {
+                    if (curLoop->getLoopDepth()==1) {
                         // this is the outer most loop
                         // find the loop bound first
                         cloneLoop(curLoop, VMap);
@@ -346,8 +224,7 @@ namespace llvm{
 
                         CmpInst::Predicate p = exitCmp->getPredicate();
 
-                        if(p==CmpInst::ICMP_SGT && exitOnTaken)
-                        {
+                        if (p==CmpInst::ICMP_SGT && exitOnTaken) {
                             // when we exit with SGT flag being true
                             // the upper bound is the second operand
                             upperBound = exitCmp->getOperand(1);
@@ -363,16 +240,15 @@ namespace llvm{
                                 errs()<<"init phi"<<*initializationPhi<<"\n";
                             else
                                 assert(false && "cannot find init phi");
+
                             int numIncomingBlocks = initializationPhi->getNumIncomingValues();
                             BasicBlock* beforeLoop=NULL;
                             int lowerBoundInd = -1;
-                            for(int bInd = 0; bInd < numIncomingBlocks; bInd++)
-                            {
+                            for(int bInd = 0; bInd < numIncomingBlocks; bInd++) {
                                 BasicBlock* pred = initializationPhi->getIncomingBlock(bInd);
                                 if(curLoop->getBlocks().end()==std::find(curLoop->getBlocks().begin(),
                                                      curLoop->getBlocks().end(),
-                                                     pred))
-                                {
+                                                     pred)) {
                                     lowerBound = initializationPhi->getIncomingValueForBlock(pred);
                                     lowerBoundInd = bInd;
                                     beforeLoop = pred;
@@ -407,7 +283,7 @@ namespace llvm{
                     ValueToValueMapTy VMap2;
                     std::vector<llvm::Type *> ArgTypes;
                     //FunctionType *ft = F.getFunctionType();
-                    for (Function::const_arg_iterator I = F.arg_begin(), E=F.arg_end(); I!=E; ++I){
+                    for (Function::const_arg_iterator I = F.arg_begin(), E=F.arg_end(); I!=E; ++I) {
                         // Duplicate the arguments 
                         ArgTypes.push_back(I->getType());
                         ArgTypes.push_back(I->getType());
@@ -419,7 +295,7 @@ namespace llvm{
                     // Gather the arguments that needs to be duplicated 
                     Function *NewF = Function::Create(FTy, F.getLinkage(), F.getName());
                     Function::arg_iterator DestI = NewF->arg_begin();
-                    for (Function::const_arg_iterator I = F.arg_begin(), E=F.arg_end(); I!=E; ++I){
+                    for (Function::const_arg_iterator I = F.arg_begin(), E=F.arg_end(); I!=E; ++I) {
                        DestI -> setName(I->getName()); 
                        Value * origArg = DestI; 
                        VMap2[I] = DestI++;
@@ -427,7 +303,7 @@ namespace llvm{
 
                        Value * newArg = DestI;  
                         // Replace the arguments in the copied loop body  
-                        for (ValueToValueMapTy::iterator VMI = VMap.begin(), VMIE = VMap.end(); VMI != VMIE; ++VMI){   
+                        for (ValueToValueMapTy::iterator VMI = VMap.begin(), VMIE = VMap.end(); VMI != VMIE; ++VMI) {   
                             // Duped 
                             BasicBlock *dupedBB = dyn_cast<BasicBlock>(VMI->second);
                             replaceAllUsesOfWithIn(origArg, newArg, dupedBB);
@@ -446,7 +322,7 @@ namespace llvm{
                     // ? Replace the argument used in the function bodyreplaceDominatedUsesWith ?
                     
                     SmallVector<Value*, 16> Args;
-                    while (!F.use_empty()){
+                    while (!F.use_empty()) {
                         llvm::CallSite CS(F.user_back());
                         assert(CS.getCalledFunction() == &F);
                         Instruction *Call = CS.getInstruction();
@@ -457,7 +333,7 @@ namespace llvm{
                         CallSite::arg_iterator AI = CS.arg_begin();
                         unsigned ArgIndex = 1;
                         for (Function::arg_iterator I = F.arg_begin(), E = F.arg_end();
-                            I != E; ++I, ++AI, ++ArgIndex){
+                            I != E; ++I, ++AI, ++ArgIndex) {
                             // Duplicate each arguments 
                                 Args.push_back(*AI);          // Unmodified argument
                                 ArgIndex++;
@@ -468,25 +344,26 @@ namespace llvm{
                         Instruction *NewCall = NULL;
 
                         // Replace old call with new call
-                        const AttributeSet &call_attr = CS.getAttributes();
-                        if (InvokeInst *ii = dyn_cast< InvokeInst >(Call)) {
+                        const AttributeSet &CallAttr = CS.getAttributes();
+                        if (InvokeInst *II = dyn_cast< InvokeInst >(Call)) {
                             NewCall = InvokeInst::Create
                                 (NewF,
-                                ii->getNormalDest(),
-                                ii->getUnwindDest(),
+                                II->getNormalDest(),
+                                II->getUnwindDest(),
                                 Args, "", Call);
                             InvokeInst *inv = cast< InvokeInst >(NewCall);
                             inv->setCallingConv(CS.getCallingConv());
-                            inv->setAttributes(call_attr);
+                            inv->setAttributes(CallAttr);
 
                         } else {
                             NewCall = CallInst::Create
                                 (NewF, Args, "", Call);
-                            CallInst *ci = cast< CallInst >(NewCall);
-                            ci->setCallingConv(CS.getCallingConv());
-                            ci->setAttributes(call_attr);
-                            if (ci->isTailCall())
-                                ci->setTailCall();
+                            CallInst *CI = cast< CallInst >(NewCall);
+                            CI->setCallingConv(CS.getCallingConv());
+                            CI->setAttributes(CallAttr);
+
+                            if (CI->isTailCall())
+                                CI->setTailCall();
                         }
 
                         NewCall->setDebugLoc
@@ -499,23 +376,18 @@ namespace llvm{
                         NewCall->takeName(Call);
                         Call->eraseFromParent();
 
-                        }
-                        }
-                        else
-                        {
+                    }
+                } else {
                             //FIXME: other scenarios for loop bound determination
                             assert(false && "currently not implemented, go ahead and add the logic");
-                        }
-
+                       }
                     }
                 }
             }
 
-
-
             return true;
-
         }
+
         virtual void getAnalysisUsage(AnalysisUsage &AU) const override
         {
             AU.addRequired<LoopInfo>();
@@ -526,10 +398,8 @@ namespace llvm{
 }
 
 char Genpar::ID = 0;
-char AddFunctionArgs::ID = 0;
-//static RegisterPass<CloneFunctionArgs> X("clone-args", "clone function arguments -- clone the function arguments");
+
 static RegisterPass<Genpar> X("gen-par", "generate par -- generate the parallelizable IR");
-//FunctionPass *llvm::createGenParPass(llvm::raw_ostream &OS, bool DAInfo)
 ModulePass *llvm::createGenParPass(llvm::raw_ostream &OS, bool DAInfo)
 {
     struct Genpar* gp = new Genpar(OS, DAInfo);
