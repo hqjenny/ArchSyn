@@ -152,7 +152,12 @@ namespace GenTCL{
             // if there is only one master, we apply the same master automation multiple times each
             // time with a different slave -- this would all connect them to the same interconnect
             std::string rtStr = "";
-            assert(masterPorts.size()>0 && "no master port\n");
+
+            // To allow masterPorts size equal to 0
+            // assert(masterPorts.size()>0 && "no master port\n");
+            if (masterPorts.size() == 0 || slavePorts.size() == 0)
+            	return rtStr;
+
             std::string firstMasterPort = *masterPorts.begin();
 
             if(masterPorts.size()==1)
@@ -245,12 +250,10 @@ namespace GenTCL{
 
             if(slaveNum>1 && masterNum >1)
                 return generateAxiConnectN2N(masterPorts,slavePorts,counter);
-            else
+            else {
                 return oneToManyAuto(masterPorts,slavePorts);
+            }
         }
-
-
-
 
     };
 
